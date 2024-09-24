@@ -5,7 +5,6 @@
   "dependencies": {
     "express": "^4.21.0",
     "http-proxy-middleware": "^3.0.2",
-    "zlib": "^1.0.5"
   },
   "_comment": "Hi! For whoever wants to read this i wish you a wonderful day, i made this for my favorite game so the alpha version works again",
   "scripts": {
