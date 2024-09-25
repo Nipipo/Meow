@@ -75,7 +75,7 @@ app.get('/data/version', (req, res) => {
   }
 
   res.status(200).json({
-    version: '0.0.1', 
+    version: '0.0.0', 
     status: 'available'
   });
 });
