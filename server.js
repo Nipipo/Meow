@@ -8,7 +8,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// Middleware to handle JSON body (without expecting gzip by default)
+// Middleware to handle JSON body (without gzip)
 app.use(express.json());
 
 // Middleware to handle gzip-encoded requests if they come
@@ -23,19 +23,16 @@ app.use((req, res, next) => {
     });
 
     gunzip.on('end', () => {
-      console.log('Decompressed Body (raw):', body); // Log decompressed body
+      console.log('Decompressed Body (raw):', body);
       try {
-        req.body = JSON.parse(body); // Parse decompressed body
-        console.log('Parsed JSON Body:', req.body); // Log parsed JSON
+        req.body = JSON.parse(body);
         next();
       } catch (error) {
-        console.error('Failed to parse JSON:', error);
         return res.status(400).json({ error: 'Invalid JSON' });
       }
     });
 
     gunzip.on('error', (err) => {
-      console.error('Gzip decompression error:', err);
       return res.status(500).json({ error: 'Gzip decompression failed' });
     });
   } else {
@@ -43,32 +40,8 @@ app.use((req, res, next) => {
   }
 });
 
-// Fake GameAnalytics events endpoint
-app.post('/v2/16bd90bfd7369b12f908dc62b1ee1bfc/events', (req, res) => {
-  const authHeader = req.headers['authorization'];
-  
-  console.log('Authorization Token:', authHeader);
-  
-  // Fake auth validation
-  if (!authHeader) {
-    console.log('Authorization failed: Missing token');
-    return res.status(401).json({ error: 'Unauthorized - Missing Token' });
-  }
-  
-  // Log game event data
-  if (!req.body || Object.keys(req.body).length === 0) {
-    console.log('Game Event body is empty or undefined');
-    return res.status(400).json({ error: 'Invalid or Missing Game Event Data' });
-  } else {
-    console.log('Game Event:', req.body); // Logging game event data
-  }
-  
-  // SUCCESS
-  res.status(201).json({ status: 'ok', message: 'Events received' });
-});
-
-// Fake remote configs
-app.get('/remote_configs/v1/init', (req, res) => {
+// Fix: Handle POST request for remote configs
+app.post('/remote_configs/v1/init', (req, res) => {
   const gameKey = req.query.game_key;
 
   // Validate game key
@@ -83,6 +56,28 @@ app.get('/remote_configs/v1/init', (req, res) => {
     ab_id: '12345',
     ab_variant_id: 'A',
   });
+});
+
+// Fake GameAnalytics events endpoint
+app.post('/v2/16bd90bfd7369b12f908dc62b1ee1bfc/events', (req, res) => {
+  const authHeader = req.headers['authorization'];
+  
+  console.log('Authorization Token:', authHeader);
+  
+  // Fake auth validation
+  if (!authHeader) {
+    return res.status(401).json({ error: 'Unauthorized - Missing Token' });
+  }
+  
+  if (!req.body || Object.keys(req.body).length === 0) {
+    console.log('Game Event body is empty or undefined');
+    return res.status(400).json({ error: 'Invalid or Missing Game Event Data' });
+  } else {
+    console.log('Game Event:', req.body); // Log game event data
+  }
+  
+  // SUCCESS
+  res.status(201).json({ status: 'ok', message: 'Events received' });
 });
 
 // Fake version check
@@ -100,6 +95,7 @@ app.get('/data/version', (req, res) => {
   });
 });
 
+// Start server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Mock server is running on http://localhost:${PORT}`);
