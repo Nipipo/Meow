@@ -9,36 +9,29 @@ app.use((req, res, next) => {
 
 // gzip thing
 app.use((req, res, next) => {
-  if (req.headers['content-encoding'] === 'gzip') {
-    const gunzip = zlib.createGunzip();
-    req.pipe(gunzip);
-    let body = '';
-    gunzip.on('data', (chunk) => {
-      body += chunk.toString();
-    });
-    gunzip.on('end', () => {
-      try {
-        req.body = JSON.parse(body);
-        next();
-      } catch (error) {
-        console.error('Error parsing JSON:', error);
-        return res.status(400).json({ error: 'Invalid JSON' });
+  res.setHeader('Content-Encoding', 'gzip');
+  const originalSend = res.send;
+  res.send = function (body) {
+    const buffer = Buffer.from(body);
+    zlib.gzip(buffer, (err, gzippedBody) => {
+      if (err) {
+        return next(err);
       }
+      originalSend.call(this, gzippedBody);
     });
-  } else {
-    next();
-  }
+  };
+  next();
 });
 
 // Fake GameAnalytics events
 app.post('/v2/16bd90bfd7369b12f908dc62b1ee1bfc/events', (req, res) => {
   const authHeader = req.headers['authorization'];
-
+  
   console.log('Authorization Token:', authHeader);
   
-  if (!authHeader) {
-    console.error('Authorization failed: Missing token');
-    return res.status(401).json({ error: 'Unauthorized - Missing Token' });
+  if (!authHeader || authHeader !== 'expected-token-here') {
+    console.log('Authorization failed: Invalid token');
+    return res.status(401).json({ error: 'Unauthorized - Invalid Token' });
   }
 
   // Logging events
@@ -49,13 +42,17 @@ app.post('/v2/16bd90bfd7369b12f908dc62b1ee1bfc/events', (req, res) => {
 });
 
 // Fake remote configs 
-app.post('/remote_configs/v1/init', (req, res) => {
-  const gameKey = req.query.game_key;
+app.get('/remote_configs/v1/init', (req, res) => {
+  const response = {
+    server_ts: Date.now(),
+    configs: { setting1: 'value1', setting2: 'value2' },
+    configs_hash: 'fakehash',
+    ab_id: '12345',
+    ab_variant_id: 'A',
+  };
+  res.status(201).json(response);
+});
 
-  // Validate game key
-  if (gameKey !== '16bd90bfd7369b12f908dc62b1ee1bfc') {
-    return res.status(400).json({ error: 'Bad Request - Invalid game_key' });
-  }
 
   // Return mock configuration
   res.status(201).json({
@@ -81,10 +78,12 @@ app.get('/data/version', (req, res) => {
     status: 'available',
   });
 });
-
-app.use((req, res) => {
-  res.status(404).json({ error: 'Not Found' });
+app.use((req, res, next) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Content-Encoding', 'gzip');
+  next();
 });
+
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
