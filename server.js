@@ -21,7 +21,7 @@ app.use((req, res, next) => {
     });
 
     gunzip.on('end', () => {
-      console.log('Decompressed Body:', body); // Log decompressed body for debugging
+      console.log('Decompressed Body (raw):', body); // Log decompressed body for debugging
       try {
         req.body = JSON.parse(body); // Try parsing the decompressed body
         console.log('Parsed JSON Body:', req.body); // Log parsed JSON for verification
@@ -38,6 +38,7 @@ app.use((req, res, next) => {
     });
 
   } else {
+    console.log('Request is not gzip-encoded'); // Additional log to check if the body is not gzip-encoded
     next();
   }
 });
