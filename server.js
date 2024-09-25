@@ -49,16 +49,16 @@ app.post('/v2/16bd90bfd7369b12f908dc62b1ee1bfc/events', (req, res) => {
 });
 
 // Fake remote configs 
-app.get('/remote_configs/v1/init', (req, res) => {
+app.post('/remote_configs/v1/init', (req, res) => {
   const gameKey = req.query.game_key;
 
-  // Validate the game key
+  // Validate game key
   if (gameKey !== '16bd90bfd7369b12f908dc62b1ee1bfc') {
-    console.error('Invalid game_key:', gameKey);
     return res.status(400).json({ error: 'Bad Request - Invalid game_key' });
   }
 
-  res.status(200).json({
+  // Return mock configuration
+  res.status(201).json({
     server_ts: Date.now(),
     configs: { setting1: 'value1', setting2: 'value2' },
     configs_hash: 'fakehash',
