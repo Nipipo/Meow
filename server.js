@@ -1,10 +1,6 @@
 const express = require('express');
-const compression = require('compression');
 const zlib = require('zlib');
 const app = express();
-
-// Enable response compression
-app.use(compression());
 
 // Log requests only in non-production environments for better performance in production
 if (process.env.NODE_ENV !== 'production') {
@@ -105,3 +101,4 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });
+
