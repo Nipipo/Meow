@@ -2,29 +2,31 @@ const express = require('express');
 const app = express();
 const zlib = require('zlib');
 
-// Log requests
+// Middleware to log all requests
 app.use((req, res, next) => {
   console.log(`Request URL: ${req.url}, Method: ${req.method}`);
   next();
 });
 
-// Middleware to handle gzip-encoded requests
+// Middleware to handle JSON body (without expecting gzip by default)
+app.use(express.json());
+
+// Middleware to handle gzip-encoded requests if they come
 app.use((req, res, next) => {
   if (req.headers['content-encoding'] === 'gzip') {
     const gunzip = zlib.createGunzip();
     req.pipe(gunzip);
     
     let body = '';
-    
     gunzip.on('data', (chunk) => {
       body += chunk.toString();
     });
 
     gunzip.on('end', () => {
-      console.log('Decompressed Body (raw):', body); // Log decompressed body for debugging
+      console.log('Decompressed Body (raw):', body); // Log decompressed body
       try {
-        req.body = JSON.parse(body); // Try parsing the decompressed body
-        console.log('Parsed JSON Body:', req.body); // Log parsed JSON for verification
+        req.body = JSON.parse(body); // Parse decompressed body
+        console.log('Parsed JSON Body:', req.body); // Log parsed JSON
         next();
       } catch (error) {
         console.error('Failed to parse JSON:', error);
@@ -36,10 +38,8 @@ app.use((req, res, next) => {
       console.error('Gzip decompression error:', err);
       return res.status(500).json({ error: 'Gzip decompression failed' });
     });
-
   } else {
-    console.log('Request is not gzip-encoded'); // Additional log to check if the body is not gzip-encoded
-    next();
+    next(); // For non-gzip requests
   }
 });
 
