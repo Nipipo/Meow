@@ -1,6 +1,20 @@
 const express = require('express');
+const compression = require('compression');
 const zlib = require('zlib');
 const app = express();
+
+// Enable response compression
+app.use(compression());
+
+// Redirect all traffic to port 1000
+app.use((req, res, next) => {
+  const host = req.headers.host;
+
+  if (!host.includes(':1000')) {
+    return res.redirect(`http://${host.split(':')[0]}:1000${req.url}`);
+  }
+  next();
+});
 
 // Log requests only in non-production environments for better performance in production
 if (process.env.NODE_ENV !== 'production') {
@@ -18,7 +32,7 @@ app.use((req, res, next) => {
   if (req.headers['content-encoding'] === 'gzip') {
     const gunzip = zlib.createGunzip();
     req.pipe(gunzip);
-    
+
     let body = '';
     gunzip.on('data', (chunk) => {
       body += chunk.toString();
@@ -49,7 +63,7 @@ app.post('/remote_configs/v1/init', (req, res) => {
   if (gameKey !== '16bd90bfd7369b12f908dc62b1ee1bfc') {
     return res.status(403).json({ error: 'Forbidden - Invalid game_key' });
   }
-  
+
   // Send cached configs for faster response
   res.status(201).json({
     server_ts: Date.now(),
@@ -63,7 +77,7 @@ app.post('/remote_configs/v1/init', (req, res) => {
 // Handle GameAnalytics events
 app.post('/v2/16bd90bfd7369b12f908dc62b1ee1bfc/events', (req, res) => {
   const authHeader = req.headers['authorization'];
-  
+
   // Validate auth token
   if (!authHeader) {
     return res.status(403).json({ error: 'Forbidden - Missing Authorization' });
@@ -80,7 +94,7 @@ app.post('/v2/16bd90bfd7369b12f908dc62b1ee1bfc/events', (req, res) => {
 
 // Handle version check with caching
 const versionResponse = {
-  version: '0.0.1', 
+  version: '0.0.1',
   status: 'available'
 };
 
@@ -101,4 +115,3 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });
-
